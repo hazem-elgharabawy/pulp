@@ -2,6 +2,16 @@
 #include <stdint.h>
 #include <stdio.h>
 
+
+void set_op(uint8_t operation){
+  uint32_t volatile * ctrl1_reg = (uint32_t*)WIDE_ALU_CTRL1(0);
+  uint32_t ctrl1_old_value;
+  //Read old value
+  ctrl1_old_value = *ctrl1_reg;
+  //Overwrite operation bits
+  *ctrl1_reg = ctrl1_old_value | (operation & WIDE_ALU_CTRL2_OPSEL_MASK)<<WIDE_ALU_CTRL2_OPSEL_LSB;
+}
+
 void set_delay(uint8_t delay)
 {
   uint32_t volatile * ctrl2_reg = (uint32_t*)WIDE_ALU_CTRL2(0);
@@ -52,4 +62,15 @@ void clear_error(void)
   uint32_t volatile * ctrl1_reg = (uint32_t*)WIDE_ALU_CTRL1(0);
   //Trigger operation by writing to trigger bit
   *ctrl1_reg = (1 & WIDE_ALU_CTRL1_CLEAR_ERR_MASK)<<WIDE_ALU_CTRL1_CLEAR_ERR_LSB;
+}
+
+int wide_multiply(uint32_t a[32], uint32_t b[32], uint32_t result[64]){
+  set_op(WIDE_ALU_CTRL2_OPSEL_MUL);
+  set_operands(a, b);
+  if (poll_done()) {
+    clear_error();
+    return 1;
+  }
+  get_result(result);
+  return 0;
 }
